@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Winger IT - AI Support</title>
+    <link rel="icon" type="image/png" href="logoda.png">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <a href="/" class="logo-container">
+                <img src="logoda.png" alt="Winger IT Logo">
+                <h1>Winger IT</h1>
+            </a>
+    
+        </div>
+
+        <!-- <button class="new-chat-btn" id="new-chat-btn">
+            <i class="fas fa-plus"></i> New chat
+        </button> -->
+
+        <div   class="ticket-input-container">
+            <label for="ticket-input">Enter your ticket number (or leave blank to create a new one):</label>
+            <input
+                style="margin-top: 15px;"
+                type="text"
+                id="ticket-input"
+                placeholder="Enter ticket #"
+            >
+
+        </div>
+        <button class="new-chat-btn" id="new-chat-btn">
+            <i class="fas fa-plus"></i> Start chat
+        </button>
+
+        <div class="chat-history" id="chat-history">
+            
+        </div>
+
+        <div class="sidebar-footer">
+    
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <button class="menu-toggle" id="menu-toggle" style="display: none;">
+            <i class="fas fa-bars"></i>
+        </button>
+
+        <div class="chat-container" id="chat-container">
+            <!-- Welcome screen -->
+           
+                
+         
+            <div class="welcome-container" id="welcome-container">
+                <img src="logo.png" alt="Winger IT Logo" class="logo-img2">
+                <h2>Winger IT AI Support Desk</h2>
+                <p>How can I help you with your IT issues today?</p>
+
+                <div class="features-grid">
+                    <div class="feature-item">
+                        <i class="fas fa-file-alt"></i>
+                        <h3>Document-Aware</h3>
+                        <p>References helpful documentation automatically</p>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-brain"></i>
+                        <h3>Smart Memory</h3>
+                        <p>Our AI remembers your previous issues</p>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-file-alt"></i>
+                        <h3>Smart Summarisation</h3>
+                        <p>Get easy, clear summaries of chat history</p> 
+                    </div>
+
+                    <!-- <i class="fas fa-file-alt"></i>
+                    <h3>Document-Aware</h3>
+                    <p>References helpful documentation automatically</p> -->
+<!-- 
+                    <i class="fas fa-brain"></i>
+                    <h3>Smart Memory</h3>
+                    <p>Our AI remembers your previous issues</p> -->
+
+                    
+                    <!-- <i class="fas fa-file-alt"></i>
+                    <h3>Smart Summarisation</h3>
+                    <p>Get easy, clear summaries of your documentation</p> -->
+                   
+
+                    <div class="feature-item">
+                        <i class="fas fa-envelope"></i>
+                        <h3>Human Escalation <br>Via Email</h3>
+                        <p>Complex issues get escalated to specialists</p>
+                    </div>
+                </div>
+                
+                <div class="instructional-message">
+                    <p>🤖 <em>Need human help? Just type</em> <strong>"Contact Human"</strong> <em>at any time and a Winger IT specialist will reach out within 24-48 hours 😊</em></p>
+                </div>
+            </div>
+
+            <!-- Chat messages will appear here -->
+        </div>
+
+        <div class="input-container">
+            <div class="input-box">
+                <textarea
+                    id="message-input"
+                    class="message-input"
+                    placeholder="Type your message..."
+                    disabled
+                    rows="1"
+                ></textarea>
+                <button
+                    id="send-message-btn"
+                    class="send-btn"
+                    disabled
+                >
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Documents Popup -->
+    <div class="popup-overlay" id="popup-overlay"></div>
+    <div class="documents-popup" id="documents-popup">
+        <div class="documents-popup-header">
+            <h3>Retrieved Documents</h3>
+            <button class="popup-close" id="popup-close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="documents-content" id="documents-content">
+            <!-- Documents will be displayed here -->
+        </div>
+    </div>
+
+    <script>
+    // DOM Elements - Using querySelector with null checks
+    const ticketInput = document.querySelector('#ticket-input');
+    const newChatBtn = document.querySelector('#new-chat-btn');
+    const chatContainer = document.querySelector('#chat-container');
+    const welcomeContainer = document.querySelector('#welcome-container');
+    const messageInput = document.querySelector('#message-input');
+    const sendMessageBtn = document.querySelector('#send-message-btn');
+    const connectionStatus = document.querySelector('#connection-status');
+    const statusText = document.querySelector('#status-text');
+    const chatHistory = document.querySelector('#chat-history');
+    const menuToggle = document.querySelector('#menu-toggle');
+    const sidebar = document.querySelector('.sidebar');
+    const popupOverlay = document.querySelector('#popup-overlay');
+    const documentsPopup = document.querySelector('#documents-popup');
+    const popupClose = document.querySelector('#popup-close');
+    const documentsContent = document.querySelector('#documents-content');
+
+    // Check if all elements exist
+    const requiredElements = [
+        { name: 'ticketInput', element: ticketInput },
+        { name: 'newChatBtn', element: newChatBtn },
+        { name: 'chatContainer', element: chatContainer },
+        { name: 'messageInput', element: messageInput },
+        { name: 'sendMessageBtn', element: sendMessageBtn },
+        { name: 'connectionStatus', element: connectionStatus },
+        { name: 'chatHistory', element: chatHistory }
+    ];
+
+    const missingElements = requiredElements.filter(item => !item.element);
+    if (missingElements.length > 0) {
+        console.error('Missing required DOM elements:', missingElements.map(item => item.name).join(', '));
+    }
+
+    // State variables
+    let currentTicketId = null;
+    let currentChatId = null;
+    let isTyping = false;
+    let chatMessagesHistory = [];
+    const API_BASE_URL = 'http://localhost:8000';
+
+    // Initialize UI elements
+    function initializeUI() {
+        // Auto-resize textarea
+        if (messageInput) {
+            messageInput.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = (this.scrollHeight < 200) ? this.scrollHeight + 'px' : '200px';
+            });
+
+            // Disable inputs until chat is started
+            messageInput.disabled = true;
+            sendMessageBtn.disabled = true;
+        }
+
+        // Mobile menu toggle
+        handleResponsiveUI();
+
+        // Popup event handlers
+        if (popupClose) popupClose.addEventListener('click', closeDocumentsPopup);
+        if (popupOverlay) popupOverlay.addEventListener('click', closeDocumentsPopup);
+
+        // Chat buttons
+        if (newChatBtn) newChatBtn.addEventListener('click', startNewChat);
+        if (sendMessageBtn) sendMessageBtn.addEventListener('click', sendMessage);
+        if (messageInput) {
+            messageInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+        }
+
+        // Chat history event delegation
+        if (chatHistory) {
+            chatHistory.addEventListener('click', (e) => {
+                const chatItem = e.target.closest('.chat-item');
+                if (chatItem) handleChatItemClick(chatItem);
+            });
+        }
+
+        // Check backend connection initially and periodically
+        checkConnection();
+        setInterval(checkConnection, 30000);
+        
+        // Load sessions from localStorage
+        loadSavedSessions();
+    }
+
+    // Load saved chat sessions from localStorage
+    function loadSavedSessions() {
+        try {
+            const savedSessions = JSON.parse(localStorage.getItem('wingerITSessions')) || [];
+            if (savedSessions.length > 0) {
+                savedSessions.forEach(session => {
+                    addChatToHistory(session.chatId, session.ticketId, false);
+                });
+            }
+        } catch (error) {
+            console.error('Error loading saved sessions:', error);
+        }
+    }
+
+    // Save sessions to localStorage
+    function saveSessions() {
+        try {
+            const sessions = Array.from(document.querySelectorAll('.chat-item')).map(item => ({
+                chatId: item.dataset.chatId,
+                ticketId: item.dataset.ticketId
+            }));
+            localStorage.setItem('wingerITSessions', JSON.stringify(sessions));
+        } catch (error) {
+            console.error('Error saving sessions:', error);
+        }
+    }
+
+    // Save chat history for a specific ticket
+    function saveChatHistory(ticketId, messages) {
+        try {
+            const allChats = JSON.parse(localStorage.getItem('wingerITChatHistory')) || {};
+            allChats[ticketId] = messages;
+            localStorage.setItem('wingerITChatHistory', JSON.stringify(allChats));
+        } catch (error) {
+            console.error('Error saving chat history:', error);
+        }
+    }
+
+    // Load chat history for a specific ticket
+    function loadChatHistory(ticketId) {
+        try {
+            const allChats = JSON.parse(localStorage.getItem('wingerITChatHistory')) || {};
+            return allChats[ticketId] || [];
+        } catch (error) {
+            console.error('Error loading chat history:', error);
+            return [];
+        }
+    }
+
+    // Handle responsive UI
+    function handleResponsiveUI() {
+        if (!menuToggle || !sidebar) return;
+
+        const updateMenuVisibility = () => {
+            if (window.innerWidth <= 768) {
+                menuToggle.style.display = 'block';
+            } else {
+                menuToggle.style.display = 'none';
+                sidebar.classList.remove('open');
+            }
+        };
+
+        updateMenuVisibility();
+
+        menuToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('open');
+        });
+
+        window.addEventListener('resize', updateMenuVisibility);
+    }
+
+    // Bridge function to connect button clicks to the document popup
+    window.openDocumentPopup = function(button) {
+        // Get documents from the parent message element's data attribute
+        const messageEl = button.closest('.message');
+        if (!messageEl || !messageEl.dataset.documents) {
+            console.error('No documents found in message element');
+            return;
+        }
+        
+        try {
+            const documents = JSON.parse(messageEl.dataset.documents);
+            openDocumentsPopup(documents);
+        } catch (error) {
+            console.error('Error parsing documents data:', error);
+        }
+    };
+
+    // Documents popup functions
+    function openDocumentsPopup(documents) {
+        if (!documentsContent || !popupOverlay || !documentsPopup) return;
+
+        documentsContent.innerHTML = '';
+
+        if (!documents || documents.length === 0) {
+            documentsContent.innerHTML = '<p>No documents available.</p>';
+        } else {
+            documents.forEach((doc, index) => {
+                const docItem = document.createElement('div');
+                docItem.className = 'document-item';
+                
+                const title = doc.title || `Document ${index + 1}`;
+                const source = doc.source || doc.metadata?.source || 'Unknown Source';
+                const content = doc.excerpt || doc.page_content || 'No content available';
+                
+                docItem.innerHTML = `
+                    <strong>${sanitizeHTML(title)}</strong>
+                    <p><em>Source: ${sanitizeHTML(source)}</em></p>
+                    <pre class="document-content">${sanitizeHTML(content.substring(0, 1000))}</pre>
+                `;
+                documentsContent.appendChild(docItem);
+            });
+        }
+
+        popupOverlay.style.display = 'block';
+        documentsPopup.style.display = 'block';
+    }
+
+    function closeDocumentsPopup() {
+        if (!popupOverlay || !documentsPopup) return;
+
+        popupOverlay.style.display = 'none';
+        documentsPopup.style.display = 'none';
+    }
+
+    // Helper function to sanitize HTML content
+    function sanitizeHTML(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Check Backend Connection
+    async function checkConnection() {
+        if (!connectionStatus || !statusText) return;
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/`);
+            if (response.ok) {
+                connectionStatus.classList.add('online');
+                statusText.textContent = 'Connected';
+            } else {
+                connectionStatus.classList.remove('online');
+                statusText.textContent = 'Error';
+            }
+        } catch (error) {
+            connectionStatus.classList.remove('online');
+            statusText.textContent = 'Disconnected';
+        }
+    }
+
+    // Start New Chat Function
+    async function startNewChat() {
+        if (!ticketInput || !welcomeContainer || !chatContainer || !messageInput || !sendMessageBtn) return;
+
+        const ticketNumber = ticketInput.value.trim();
+
+        try {
+            // Show typing indicator to show loading
+            welcomeContainer.style.display = 'none';
+            chatContainer.innerHTML = `
+                <div class="message-wrapper">
+                    <div class="message ai">
+                        <div class="message-avatar ai">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <div class="message-content">
+                            <div class="typing-indicator">
+                                <div class="typing-dot"></div>
+                                <div class="typing-dot"></div>
+                                <div class="typing-dot"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            const response = await fetch(`${API_BASE_URL}/start_chat`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ ticket_id: ticketNumber || null })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            if (!data || !data.ticket_id) {
+                throw new Error('Invalid response from server');
+            }
+
+            currentTicketId = data.ticket_id;
+            currentChatId = Date.now().toString(); // Generate a unique ID for this chat session
+            
+            // Initialize or load chat history
+            chatMessagesHistory = data.chat || loadChatHistory(currentTicketId) || [];
+
+            // Enable input
+            messageInput.disabled = false;
+            sendMessageBtn.disabled = false;
+            messageInput.focus();
+
+            // Add to chat history sidebar
+            addChatToHistory(currentChatId, currentTicketId, true);
+
+            // Display the chat history
+            renderChatHistory();
+
+        } catch (error) {
+            console.error('Error starting chat:', error);
+            chatContainer.innerHTML = `
+                <div class="message-wrapper">
+                    <div class="message ai">
+                        <div class="message-avatar ai">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <div class="message-content">
+                            <p><strong>Error:</strong> Failed to start chat. Please try again.</p>
+                            <details>
+                                <summary>Technical Details</summary>
+                                ${sanitizeHTML(error.message)}
+                            </details>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    // Render chat history
+    function renderChatHistory() {
+    if (!chatContainer) return;
+    
+    // Create and add ticket info
+    chatContainer.innerHTML = `
+        <div class="message-wrapper">
+            <div class="ticket-info" id="ticket-info">
+                <h3><i class="fas fa-ticket-alt"></i> Ticket Information</h3>
+                <p><strong>ID:</strong> <span id="ticket-id-display">${sanitizeHTML(currentTicketId)}</span></p>
+                <p><strong>Status:</strong> <span id="ticket-status">Active</span></p>
+                <p><strong>Created:</strong> <span id="ticket-created">${new Date().toLocaleString()}</span></p>
+            </div>
+        </div>
+    `;
+    
+    const messageWrapper = document.querySelector('.message-wrapper');
+    
+    // Function to convert markdown-like text to HTML
+    function formatResponse(text) {
+        // Check if the text contains numbered list patterns (1. text, 2. text, etc.)
+        const hasNumberedList = /\n\s*\d+\.\s+/.test(text);
+        
+        // Check if the text contains bullet list patterns (• text or * text)
+        const hasBulletList = /\n\s*[\•\*]\s+/.test(text);
+        
+        // Check for bold text patterns (**text** or __text__)
+        const hasBoldText = /\*\*[\s\S]+?\*\*|__[\s\S]+?__/.test(text);
+        
+        // If it contains list patterns or formatting, parse it accordingly
+        if (hasNumberedList || hasBulletList || hasBoldText) {
+            // Convert numbered lists (1. Item) to HTML
+            text = text.replace(/(\n|^)\s*(\d+)\.\s+(.*)/g, "$1<li>$3</li>");
+            
+            // Convert bullet lists (* Item or • Item) to HTML
+            text = text.replace(/(\n|^)\s*[\•\*]\s+(.*)/g, "$1<li>$2</li>");
+            
+            // Replace consecutive list items with proper list HTML
+            text = text.replace(/(<li>.*<\/li>)(\n<li>.*<\/li>)+/g, function(match) {
+                return '<ol>' + match.replace(/\n/g, '') + '</ol>';
+            });
+            
+            // Convert bold text
+            text = text.replace(/\*\*(.*?)\*\*|__(.*?)__/g, "<strong>$1$2</strong>");
+            
+            // Convert newlines to <br> tags or paragraph breaks
+            text = text.replace(/\n\n/g, '</p><p>');
+            text = text.replace(/\n/g, '<br>');
+            
+            return '<p>' + text + '</p>';
+        } else {
+            // If no list patterns detected, just use the text as a paragraph
+            return '<p>' + text + '</p>';
+        }
+    }
+    
+    // If no chat history, display welcome message
+    if (chatMessagesHistory.length === 0) {
+        const aiMessageEl = document.createElement('div');
+        aiMessageEl.className = 'message ai';
+        aiMessageEl.innerHTML = `
+            <div class="message-avatar ai">
+                <i class="fas fa-robot"></i>
+            </div>
+            <div class="message-content">
+                <p>Hello! I'm your AI support assistant. How can I help you with your IT issue today?</p>
+            </div>
+        `;
+        messageWrapper.appendChild(aiMessageEl);
+        
+        // Add to history
+        chatMessagesHistory.push({
+            role: "ai", 
+            ai: "Hello! I'm your AI support assistant. How can I help you with your IT issue today?"
+        });
+        saveChatHistory(currentTicketId, chatMessagesHistory);
+    } else {
+        // Display existing chat history
+        chatMessagesHistory.forEach(msg => {
+            if (msg.role === "user") {
+                const userMessageEl = document.createElement('div');
+                userMessageEl.className = 'message user';
+                userMessageEl.innerHTML = `
+                    <div class="message-avatar user">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="message-content">
+                        <p>${sanitizeHTML(msg.user)}</p>
+                    </div>
+                `;
+                messageWrapper.appendChild(userMessageEl);
+            } else if (msg.role === "ai") {
+                const aiMessageEl = document.createElement('div');
+                aiMessageEl.className = 'message ai';
+                
+                // Check if we have documents to display
+                let documentsButtonHTML = '';
+                if (msg.documents && msg.documents.length > 0) {
+                    aiMessageEl.dataset.documents = JSON.stringify(msg.documents);
+                    documentsButtonHTML = `
+                        <button class="view-docs-btn" onclick="window.openDocumentPopup(this)">
+                            <i class="fas fa-file-alt"></i> View Retrieved Documents (${msg.documents.length})
+                        </button>
+                    `;
+                }
+                
+                aiMessageEl.innerHTML = `
+                    <div class="message-avatar ai">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <div class="message-content  ai-response">
+                        ${formatResponse(sanitizeHTML(msg.ai))}
+                        ${documentsButtonHTML}
+                    </div>
+                `;
+                messageWrapper.appendChild(aiMessageEl);
+                
+                // Check for escalation message
+                if (msg.ai.toLowerCase().includes("contact you within 24 to 48 hours")) {
+                    const escalationAlert = document.createElement('div');
+                    escalationAlert.className = 'escalation-alert';
+                    escalationAlert.innerHTML = `
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span>This ticket has been escalated to a human support specialist.</span>
+                    `;
+                    messageWrapper.appendChild(escalationAlert);
+                }
+            }
+        });
+    }
+    
+    // Scroll to bottom
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+}
+    // Add a chat to history sidebar
+    // function addChatToHistory(chatId, ticketId, setActive = true) {
+    //     if (!chatHistory) return;
+
+    //     // Check if this chat already exists in history
+    //     const existingChat = document.querySelector(`.chat-item[data-chat-id="${chatId}"]`);
+    //     if (existingChat) {
+    //         if (setActive) {
+    //             document.querySelectorAll('.chat-item').forEach(item => {
+    //                 item.classList.remove('active');
+    //             });
+    //             existingChat.classList.add('active');
+    //         }
+    //         return;
+    //     }
+
+    //     const chatItem = document.createElement('div');
+    //     chatItem.className = setActive ? 'chat-item active' : 'chat-item';
+    //     chatItem.dataset.chatId = chatId;
+    //     chatItem.dataset.ticketId = ticketId;
+    //     chatItem.innerHTML = `
+    //         <i class="fas fa-comment"></i>
+    //         <span>Ticket boy ${sanitizeHTML(ticketId)}</span>
+    //     `;
+    //     chatHistory.prepend(chatItem);
+
+    //     // Make all other chat items inactive if this is active
+    //     if (setActive) {
+    //         document.querySelectorAll('.chat-item').forEach(item => {
+    //             if (item !== chatItem) {
+    //                 item.classList.remove('active');
+    //             }
+    //         });
+    //     }
+        
+    //     // Save sessions to localStorage
+    //     saveSessions();
+    // }
+
+
+
+    async function loadTicketChats() {
+        const chatHistory = document.getElementById('chat-history');
+        if (!chatHistory) return;
+
+        try {
+            // Try to fetch JSON files from server
+            const jsonFiles = await fetchJsonFiles();
+            
+            // Clear existing items
+            chatHistory.innerHTML = '';
+            
+            // Add each JSON file as a chat item
+            jsonFiles.forEach(file => {
+                const ticketId = formatTicketId(file);
+                addChatToHistory(generateChatId(), ticketId, false);
+            });
+            
+        } catch (error) {
+            console.error('Error loading ticket chats:', error);
+        }
+    }
+
+    // Format the ticket ID to look like #23WI2025050
+    function formatTicketId(filename) {
+        // Remove .json extension
+        let ticketId = filename.replace('.json', '');
+        
+        // Decode URL-encoded characters (%23 becomes #)
+        ticketId = decodeURIComponent(ticketId);
+        
+        // Remove any path segments if present
+        ticketId = ticketId.replace('/tickets/', '');
+        
+        // Ensure it starts with #
+        if (!ticketId.startsWith('#')) {
+            ticketId = '#' + ticketId;
+        }
+        
+        return ticketId;
+    }
+
+    // Fetch JSON files from tickets folder (same as before)
+    async function fetchJsonFiles() {
+    try {
+        const response = await fetch('http://127.0.0.1:8000/tickets/');
+
+        if (!response.ok) {
+            throw new Error(`Server error: ${response.status}`);
+        }
+
+        const jsonFiles = await response.json();  // Directly parse JSON
+        return jsonFiles;
+
+    } catch (error) {
+        console.log('Server fetch failed, using simulated data');
+        return ["NO data.json"];
+    }
+}
+
+    // Rest of the code remains the same...
+    function generateChatId() {
+        return 'chat-' + Math.random().toString(36).substr(2, 9);
+    }
+
+    function addChatToHistory(chatId, ticketId, setActive = true) {
+        const chatHistory = document.getElementById('chat-history');
+        if (!chatHistory) return;
+
+        const existingChat = document.querySelector(`.chat-item[data-chat-id="${chatId}"]`);
+        if (existingChat) {
+            if (setActive) {
+                document.querySelectorAll('.chat-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+                existingChat.classList.add('active');
+            }
+            return;
+        }
+
+        const chatItem = document.createElement('div');
+        chatItem.className = setActive ? 'chat-item active' : 'chat-item';
+        chatItem.dataset.chatId = chatId;
+        chatItem.dataset.ticketId = ticketId;
+        chatItem.innerHTML = `
+            <i class="fas fa-comment"></i>
+            <span>${sanitizeHTML(ticketId)}</span>
+        `;
+        chatHistory.prepend(chatItem);
+
+        if (setActive) {
+            document.querySelectorAll('.chat-item').forEach(item => {
+                if (item !== chatItem) {
+                    item.classList.remove('active');
+                }
+            });
+        }
+        
+        saveSessions();
+    }
+
+    function sanitizeHTML(str) {
+        return str.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    function saveSessions() {
+        // Your implementation here
+    }
+
+    // Load tickets when page loads
+    document.addEventListener('DOMContentLoaded', loadTicketChats);
+
+
+
+
+
+    // Send Message Function
+    async function sendMessage() {
+    if (!messageInput || !sendMessageBtn || !chatContainer) return;
+
+    const message = messageInput.value.trim();
+    if (!message || isTyping || !currentTicketId) return;
+
+    try {
+        // Reset textarea height
+        messageInput.style.height = '56px';
+        messageInput.value = '';
+
+        // Add user message to chat
+        const messageWrapper = document.querySelector('.message-wrapper');
+        if (!messageWrapper) {
+            console.error('No message wrapper found');
+            return;
+        }
+
+        const userMessageEl = document.createElement('div');
+        userMessageEl.className = 'message user';
+        userMessageEl.innerHTML = `
+            <div class="message-avatar user">
+                <i class="fas fa-user"></i>
+            </div>
+            <div class="message-content">
+                <p>${sanitizeHTML(message)}</p>
+            </div>
+        `;
+        messageWrapper.appendChild(userMessageEl);
+        
+        // Add to chat history
+        chatMessagesHistory.push({
+            role: "user",
+            user: message
+        });
+        saveChatHistory(currentTicketId, chatMessagesHistory);
+
+        // Add typing indicator
+        const aiMessageEl = document.createElement('div');
+        aiMessageEl.className = 'message ai';
+        aiMessageEl.innerHTML = `
+            <div class="message-avatar ai">
+                <i class="fas fa-robot"></i>
+            </div>
+            <div class="message-content">
+                <div class="typing-indicator">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                </div>
+            </div>
+        `;
+        messageWrapper.appendChild(aiMessageEl);
+
+        // Scroll to bottom
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+
+        isTyping = true;
+        messageInput.disabled = true;
+        sendMessageBtn.disabled = true;
+
+        // Send message to backend
+        const response = await fetch(`${API_BASE_URL}/chat`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                ticket_id: currentTicketId,
+                message: message
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        // Replace typing indicator with AI response
+        const aiResponse = data.response || "I'm sorry, I couldn't process your request.";
+        
+        // Process retrieved documents
+        const documents = data.retrieved_docs || data.documents || [];
+
+        // Store documents in a data attribute and display button if documents exist
+        let documentButtonHTML = '';
+        if (documents.length > 0) {
+            aiMessageEl.dataset.documents = JSON.stringify(documents);
+            documentButtonHTML = `
+                <button class="view-docs-btn" onclick="window.openDocumentPopup(this)">
+                    <i class="fas fa-file-alt"></i> View Retrieved Documents (${documents.length})
+                </button>
+            `;
+        }
+
+        // Function to convert markdown-like text to HTML
+        function formatResponse(text) {
+            // Check if the text contains numbered list patterns (1. text, 2. text, etc.)
+            const hasNumberedList = /\n\s*\d+\.\s+/.test(text);
+            
+            // Check if the text contains bullet list patterns (• text or * text)
+            const hasBulletList = /\n\s*[\•\*]\s+/.test(text);
+            
+            // Check for bold text patterns (**text** or __text__)
+            const hasBoldText = /\*\*[\s\S]+?\*\*|__[\s\S]+?__/.test(text);
+            
+            // If it contains list patterns or formatting, parse it accordingly
+            if (hasNumberedList || hasBulletList || hasBoldText) {
+                // Convert numbered lists (1. Item) to HTML
+                text = text.replace(/(\n|^)\s*(\d+)\.\s+(.*)/g, "$1<li>$3</li>");
+                
+                // Convert bullet lists (* Item or • Item) to HTML
+                text = text.replace(/(\n|^)\s*[\•\*]\s+(.*)/g, "$1<li>$2</li>");
+                
+                // Replace consecutive list items with proper list HTML
+                text = text.replace(/(<li>.*<\/li>)(\n<li>.*<\/li>)+/g, function(match) {
+                    return '<ol>' + match.replace(/\n/g, '') + '</ol>';
+                });
+                
+                // Convert bold text
+                text = text.replace(/\*\*(.*?)\*\*|__(.*?)__/g, "<strong>$1$2</strong>");
+                
+                // Convert newlines to <br> tags or paragraph breaks
+                text = text.replace(/\n\n/g, '</p><p>');
+                text = text.replace(/\n/g, '<br>');
+                
+                return '<p>' + text + '</p>';
+            } else {
+                // If no list patterns detected, just use the text as a paragraph
+                return '<p>' + text + '</p>';
+            }
+        }
+
+        // Display the formatted AI response
+        aiMessageEl.innerHTML = `
+            <div class="message-avatar ai">
+                <i class="fas fa-robot"></i>
+            </div>
+            <div class="message-content  ai-response">
+                ${formatResponse(sanitizeHTML(aiResponse))}
+                ${documentButtonHTML}
+            </div>
+        `;
+        
+        // Add to chat history
+        chatMessagesHistory.push({
+            role: "ai",
+            ai: aiResponse,
+            documents: documents
+        });
+        saveChatHistory(currentTicketId, chatMessagesHistory);
+        
+        // Check for escalation
+        if (aiResponse.toLowerCase().includes("contact you within 24 to 48 hours")) {
+            const escalationAlert = document.createElement('div');
+            escalationAlert.className = 'escalation-alert';
+            escalationAlert.innerHTML = `
+                <i class="fas fa-exclamation-triangle"></i>
+                <span>This ticket has been escalated to a human support specialist.</span>
+            `;
+            messageWrapper.appendChild(escalationAlert);
+        }
+
+        isTyping = false;
+        messageInput.disabled = false;
+        sendMessageBtn.disabled = false;
+        messageInput.focus();
+
+        // Scroll to bottom
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+
+    } catch (error) {
+        console.error('Error sending message:', error);
+
+        // Replace typing indicator with error message
+        const aiMessageEl = document.querySelector('.message.ai:last-child');
+        if (aiMessageEl) {
+            aiMessageEl.querySelector('.message-content').innerHTML = `
+                <p><strong>Error:</strong> Failed to send message.</p>
+                <details>
+                    <summary>Technical Details</summary>
+                    ${sanitizeHTML(error.message)}
+                </details>
+            `;
+        }
+
+        isTyping = false;
+        messageInput.disabled = false;
+        sendMessageBtn.disabled = false;
+    }
+}
+
+    // Handle chat history item click
+    function handleChatItemClick(chatItem) {
+        if (!chatContainer || !messageInput || !sendMessageBtn) return;
+
+        // Mark as active
+        document.querySelectorAll('.chat-item').forEach(item => {
+            item.classList.remove('active');
+        });
+        chatItem.classList.add('active');
+
+        // Set current ticket and chat ID
+        currentTicketId = chatItem.dataset.ticketId;
+        currentChatId = chatItem.dataset.chatId;
+        
+        // Load chat history for this ticket
+        chatMessagesHistory = loadChatHistory(currentTicketId) || [];
+
+        // Enable input
+        messageInput.disabled = false;
+        sendMessageBtn.disabled = false;
+        
+        // Hide welcome screen
+        if (welcomeContainer) {
+            welcomeContainer.style.display = 'none';
+        }
+        
+        // Render the chat history
+        renderChatHistory();
+    }
+
+    // Initialize the application
+    document.addEventListener('DOMContentLoaded', initializeUI);
+
+
+
+    </script>
+    
+ 
